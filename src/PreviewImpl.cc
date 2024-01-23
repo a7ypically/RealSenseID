@@ -67,8 +67,14 @@ bool PreviewImpl::StartPreview(PreviewImageReadyCallback& callback)
             {
                 if (_paused)
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds {100});
-                    continue;
+		    std::unique_lock<std::mutex> lk(_m);
+                    if (_paused)
+                    {
+                        _cv.wait(lk, [&]{return _paused || _canceled;});
+                    }
+
+                    //std::this_thread::sleep_for(std::chrono::milliseconds {100});
+                    //continue;
                 }
                 RealSenseID::Image container;
                 bool res = _capture->Read(&container);
@@ -102,11 +108,13 @@ bool PreviewImpl::StartPreview(PreviewImageReadyCallback& callback)
         {
             LOG_ERROR(LOG_TAG, "Streaming ERROR : %s", ex.what());
             _canceled = true;
+	    _cv.notify_one();
         }
         catch (...)
         {
             LOG_ERROR(LOG_TAG, "Streaming unknonwn exception");
             _canceled = true;
+	    _cv.notify_one();
         }
         _capture.reset();
     });
@@ -116,18 +124,21 @@ bool PreviewImpl::StartPreview(PreviewImageReadyCallback& callback)
 bool PreviewImpl::PausePreview()
 {
     _paused = true;
+    _cv.notify_one();
     return true;
 }
 
 bool PreviewImpl::ResumePreview()
 {
     _paused = false;
+    _cv.notify_one();
     return true;
 }
 
 bool PreviewImpl::StopPreview()
 {
     _canceled = true;
+    _cv.notify_one();
     if (_worker_thread.joinable())
     {
         _worker_thread.join();

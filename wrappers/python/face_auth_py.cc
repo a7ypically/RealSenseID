@@ -6,6 +6,12 @@
 #include <RealSenseID/EnrollmentCallback.h>
 #include "rsid_py.h"
 
+#ifdef RSID_SECURE
+#include "secure_mode_helper.h"
+// signer object to store public keys of the host and device
+static RealSenseID::Examples::SignHelper s_signer;
+#endif // RSID_SECURE
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
@@ -414,6 +420,10 @@ void init_face_authenticator(pybind11::module& m)
         .value("Single", DeviceConfig::FaceSelectionPolicy::Single)
         .value("All", DeviceConfig::FaceSelectionPolicy::All);
 
+    py::enum_<DeviceConfig::DumpMode>(m, "DumpMode")
+        .value("None", DeviceConfig::DumpMode::None)
+        .value("CroppedFace", DeviceConfig::DumpMode::CroppedFace)
+        .value("FullFrame", DeviceConfig::DumpMode::FullFrame);
 
     py::class_<DeviceConfig>(m, "DeviceConfig")
         .def(py::init<>())
@@ -591,9 +601,12 @@ void init_face_authenticator(pybind11::module& m)
     //
 
     py::class_<FaceAuthenticator>(m, "FaceAuthenticator")
-        .def(py::init<>())                          // default ctor
         .def(py::init([](const std::string& port) { // ctor with port to connect
+#ifdef RSID_SECURE
+	    auto f = std::make_unique<FaceAuthenticator>(&s_signer);
+#else
             auto f = std::make_unique<FaceAuthenticator>();
+#endif
             RSID_THROW_ON_ERROR(f->Connect(SerialConfig {port.c_str()}));
             return f;
         }))

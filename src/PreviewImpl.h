@@ -7,6 +7,8 @@
 #include "RawHelper.h"
 #include <thread>
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 #ifdef ANDROID
 #include "AndroidCapture.h"
@@ -33,6 +35,8 @@ private:
     std::thread _worker_thread;
     std::atomic_bool _canceled {false};
     std::atomic_bool _paused {false};
+    std::mutex _m;
+    std::condition_variable _cv;
     PreviewImageReadyCallback* _callback = nullptr;
     std::unique_ptr<Capture::CaptureHandle> _capture;
     std::unique_ptr<Capture::RawHelper> _raw_helper;

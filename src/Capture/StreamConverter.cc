@@ -102,6 +102,17 @@ StreamConverter::~StreamConverter()
     }
 }
 
+bool StreamConverter::CopyRawJpegBuffer(Image* res, buffer frame_buffer)
+{
+    //::memcpy(res->buffer, frame_buffer.data, frame_buffer.size);
+    res->buffer = frame_buffer.data;
+    res->height = 1280;
+    res->width = 704;
+    res->stride = 0;
+    res->size = frame_buffer.size;
+    return true;
+}
+
 bool StreamConverter::DecodeJpeg(Image* res, buffer frame_buffer)
 {    
     ::jpeg_mem_src(&_jpeg_dinfo, frame_buffer.data, frame_buffer.size); 
@@ -157,7 +168,8 @@ bool StreamConverter::Buffer2Image(Image* res,const buffer& frame_buffer,const b
         try
         {
             res->metadata = ExtractMetadataFromMDBuffer(md_buffer,true);
-            bool decode_success = DecodeJpeg(res, frame_buffer);
+            //bool decode_success = DecodeJpeg(res, frame_buffer);
+	    bool decode_success = CopyRawJpegBuffer(res, frame_buffer);
             return decode_success;
         }
         catch (const std::exception& ex)

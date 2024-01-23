@@ -55,6 +55,7 @@ private:
 
     void InitDecompressor();
     bool DecodeJpeg(Image* res, buffer frame_buffer);
+    bool CopyRawJpegBuffer(Image* res, buffer frame_buffer);
 };
 } // namespace Capture
 } // namespace RealSenseID

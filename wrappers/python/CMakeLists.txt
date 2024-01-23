@@ -28,6 +28,7 @@ set(SOURCES
     "${SRC_PATH}/discover_devices_py.cc"
     "${SRC_PATH}/device_controller_py.cc"
     "${SRC_PATH}/logging_py.cc"
+    "${SRC_PATH}/secure_mode_helper.cc"
     )
 
 if (RSID_PREVIEW)
@@ -37,7 +38,7 @@ endif ()
 pybind11_add_module(${PY_TARGET} ${HEADERS} ${SOURCES})
 
 
-target_link_libraries(${PY_TARGET} PRIVATE ${LIBRSID_CPP_TARGET})
+target_link_libraries(${PY_TARGET} PRIVATE ${LIBRSID_CPP_TARGET} /home/pi/RealSenseID/build/lib/libmbedcrypto.a)
 
 set_target_properties(${PY_TARGET}
         PROPERTIES
@@ -54,6 +55,11 @@ if (RSID_PREVIEW)
 endif()
 
 
+include_directories(
+       /home/pi/RealSenseID/tools/shared/secure-mode-helper
+       /home/pi/RealSenseID/wrappers/c/include
+       /home/pi/RealSenseID/3rdparty/mbedtls-2.25.0/include
+       )
 
 get_target_property(PROJECT_SOURCES ${PY_TARGET} SOURCES)
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PROJECT_SOURCES})

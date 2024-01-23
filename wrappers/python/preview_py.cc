@@ -1,6 +1,7 @@
 // License: Apache 2.0. See LICENSE file in root directory.
 // Copyright(c) 2020-2021 Intel Corporation. All Rights Reserved.
 
+#include <cstdint>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
@@ -15,12 +16,18 @@ using ImageCallbackFun = std::function<void(RealSenseID::Image)>;
 // Callback support using virtual methods
 class PreviewImageCallbackPy : public RealSenseID::PreviewImageReadyCallback {
 	ImageCallbackFun _user_clbk;
+	ImageCallbackFun _user_clbk_snapshot;
 public:
-	explicit PreviewImageCallbackPy(ImageCallbackFun& user_clbk) :_user_clbk{ user_clbk } {}
+	explicit PreviewImageCallbackPy(ImageCallbackFun& user_clbk, ImageCallbackFun& user_clbk_snapshot) :_user_clbk{ user_clbk }, _user_clbk_snapshot{user_clbk_snapshot} {}
 	void OnPreviewImageReady(const RealSenseID::Image image) override {
 		py::gil_scoped_acquire acquire;
 		_user_clbk(image);
 	}
+
+        void OnSnapshotImageReady(const RealSenseID::Image image) override {
+                py::gil_scoped_acquire acquire;
+                _user_clbk_snapshot(image);
+        }
 };
 
 // store preview and callback as unique pointers, so that the callback won't get deleted too soon
@@ -34,10 +41,10 @@ public:
 		_preview = std::make_unique<RealSenseID::Preview>(config);
 	}
 
-	void Start(ImageCallbackFun fn)
+	void Start(ImageCallbackFun fn, ImageCallbackFun fn2)
 	{
 		Stop();
-		_img_clbk = std::make_unique< PreviewImageCallbackPy>(fn);
+		_img_clbk = std::make_unique< PreviewImageCallbackPy>(fn, fn2);
 		if (!_preview->StartPreview(*_img_clbk))
 			throw std::runtime_error("StartPreview failed");
 	}
@@ -47,6 +54,18 @@ public:
 		if (!_preview->StopPreview())
 			throw std::runtime_error("StopPreview failed");
 	}
+
+        void Pause()
+        {
+                if (!_preview->PausePreview())
+                        throw std::runtime_error("PausePreview failed");
+        }
+
+        void Resume()
+        {
+               if (!_preview->ResumePreview())
+                        throw std::runtime_error("ResumePreview failed");
+        }
 };
 
 
@@ -97,6 +116,10 @@ void init_preview(pybind11::module& m)
 		.def(py::init<const PreviewConfig&>())
 		.def("start", &PreviewPy::Start,
 			py::call_guard<py::gil_scoped_release>())
+                .def("pause", &PreviewPy::Pause,
+                        py::call_guard<py::gil_scoped_release>())
+                .def("resume", &PreviewPy::Resume,
+                        py::call_guard<py::gil_scoped_release>())
 		.def("stop", &PreviewPy::Stop,
 			py::call_guard<py::gil_scoped_release>());
 }

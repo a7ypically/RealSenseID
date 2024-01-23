@@ -168,7 +168,7 @@ def on_image(image):
         global window_init
         if not window_init:
             cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(WINDOW_NAME, (int(720 / 1.6), int(1280 / 1.6)))
+            cv2.resizeWindow(WINDOW_NAME, int(720 / 1.6), int(1280 / 1.6))
             window_init = True
         buffer = memoryview(image.get_buffer())
         arr = np.asarray(buffer, dtype=np.uint8)
@@ -221,6 +221,7 @@ def show_status(msg, image, color):
 
 def preview_loop():
     preview_cfg = rsid_py.PreviewConfig()
+    preview_cfg.preview_mode = rsid_py.PreviewMode.MJPEG_720P
     preview_cfg.camera_number = -1 # -1 means auto detect
     p = rsid_py.Preview(preview_cfg)
     p.start(on_image)
